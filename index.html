@@ -1,0 +1,2731 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeBoard QR Check-In System</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════════════════ */
+    :root {
+      --g0: #03120a;
+      --g1: #071c0f;
+      --g2: #0b2816;
+      --g3: #0e3a1e;
+      --green: #19c95a;
+      --green-dim: rgba(25, 201, 90, 0.15);
+      --green-glow: rgba(25, 201, 90, 0.35);
+      --amber: #f0a500;
+      --amber-dim: rgba(240, 165, 0, 0.15);
+      --red: #f04040;
+      --red-dim: rgba(240, 64, 64, 0.15);
+      --blue: #38b6ff;
+      --blue-dim: rgba(56, 182, 255, 0.13);
+      --text: #e8f4ed;
+      --text-mid: rgba(232, 244, 237, 0.65);
+      --text-dim: rgba(232, 244, 237, 0.35);
+      --border: rgba(25, 201, 90, 0.18);
+      --border-bright: rgba(25, 201, 90, 0.45);
+      --card: rgba(7, 28, 15, 0.92);
+      --r: 14px;
+      --r-sm: 8px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--g0);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════
+   SCANLINE TEXTURE OVERLAY
+═══════════════════════════════════════════════ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.04) 2px, rgba(0, 0, 0, 0.04) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ═══════════════════════════════════════════════
+   NAV TABS
+═══════════════════════════════════════════════ */
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--g1);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-logo {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 900;
+      font-size: 1.05rem;
+      letter-spacing: -0.5px;
+      color: var(--green);
+      margin-right: 36px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 var(--green-glow);
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(25, 201, 90, 0);
+      }
+    }
+
+    .tab {
+      padding: 16px 20px;
+      font-size: 0.80rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .tab:hover {
+      color: var(--text-mid);
+    }
+
+    .tab.active {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    .nav-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--green);
+      background: var(--green-dim);
+      border: 1px solid rgba(25, 201, 90, 0.3);
+      border-radius: 100px;
+      padding: 5px 12px;
+    }
+
+    .live-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════
+   VIEWS  (only one visible at a time)
+═══════════════════════════════════════════════ */
+    .view {
+      display: none;
+      animation: fadeIn 0.35s ease both;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ═══════════════════════════════════════════════
+   ── VIEW 1: PARENT QR SCAN PORTAL
+═══════════════════════════════════════════════ */
+    .scan-portal {
+      min-height: calc(100vh - 53px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(25, 201, 90, 0.12) 0%, transparent 60%),
+        var(--g0);
+    }
+
+    .scan-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px 36px;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(25, 201, 90, 0.07);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scan-card::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 150px;
+      background: radial-gradient(ellipse, rgba(25, 201, 90, 0.14) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .scan-station-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .scan-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    .scan-title span {
+      color: var(--green);
+    }
+
+    .scan-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-mid);
+      font-weight: 400;
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    /* QR box */
+    .qr-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 28px;
+    }
+
+    .qr-frame {
+      width: 200px;
+      height: 200px;
+      border-radius: 16px;
+      background: var(--g1);
+      border: 2px solid var(--border-bright);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .qr-frame:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 30px var(--green-glow);
+    }
+
+    .qr-frame.scanning {
+      border-color: var(--green);
+      box-shadow: 0 0 40px var(--green-glow);
+      animation: qr-pulse 0.6s ease-in-out infinite alternate;
+    }
+
+    @keyframes qr-pulse {
+      from {
+        box-shadow: 0 0 20px var(--green-glow);
+      }
+
+      to {
+        box-shadow: 0 0 50px rgba(25, 201, 90, 0.6);
+      }
+    }
+
+    .qr-frame.success {
+      border-color: var(--green);
+      background: rgba(25, 201, 90, 0.08);
+    }
+
+    /* Corner accents */
+    .qr-frame::before,
+    .qr-frame::after {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--green);
+      transition: border-color 0.3s;
+    }
+
+    .qr-frame::before {
+      top: 8px;
+      left: 8px;
+      border-right: none;
+      border-bottom: none;
+      border-radius: 4px 0 0 0;
+    }
+
+    .qr-frame::after {
+      bottom: 8px;
+      right: 8px;
+      border-left: none;
+      border-top: none;
+      border-radius: 0 0 4px 0;
+    }
+
+    .qr-corner-tr {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--green);
+      border-left: none;
+      border-bottom: none;
+      border-radius: 0 4px 0 0;
+    }
+
+    .qr-corner-bl {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--green);
+      border-right: none;
+      border-top: none;
+      border-radius: 0 0 0 4px;
+    }
+
+    /* scan line */
+    .scan-line {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      top: 20%;
+      animation: scan-move 2s ease-in-out infinite;
+      opacity: 0;
+    }
+
+    .qr-frame.scanning .scan-line {
+      opacity: 0.8;
+    }
+
+    @keyframes scan-move {
+      0% {
+        top: 10%;
+      }
+
+      50% {
+        top: 88%;
+      }
+
+      100% {
+        top: 10%;
+      }
+    }
+
+    .qr-svg {
+      width: 130px;
+      height: 130px;
+      opacity: 0.85;
+    }
+
+    .qr-success-icon {
+      font-size: 3rem;
+      animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes pop {
+      from {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Form */
+    .scan-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      text-align: left;
+    }
+
+    .form-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .form-select,
+    .form-input {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 500;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .form-select:focus,
+    .form-input:focus {
+      border-color: var(--green);
+    }
+
+    .form-select option {
+      background: #071c0f;
+    }
+
+    .scan-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--green);
+      border: none;
+      border-radius: var(--r);
+      color: #03120a;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scan-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .scan-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px var(--green-glow);
+    }
+
+    .scan-btn:hover::after {
+      opacity: 1;
+    }
+
+    .scan-btn:active {
+      transform: translateY(0);
+    }
+
+    .scan-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status-msg {
+      font-size: 0.80rem;
+      font-weight: 500;
+      padding: 12px 16px;
+      border-radius: var(--r-sm);
+      text-align: left;
+      display: none;
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+
+    .status-msg.show {
+      display: block;
+    }
+
+    .status-msg.ok {
+      background: var(--green-dim);
+      border: 1px solid rgba(25, 201, 90, 0.3);
+      color: var(--green);
+    }
+
+    .status-msg.warn {
+      background: var(--amber-dim);
+      border: 1px solid rgba(240, 165, 0, 0.3);
+      color: var(--amber);
+    }
+
+    .status-msg.info {
+      background: var(--blue-dim);
+      border: 1px solid rgba(56, 182, 255, 0.25);
+      color: var(--blue);
+    }
+
+    .ticket-strip {
+      margin-top: 16px;
+      background: linear-gradient(135deg, var(--g2), var(--g3));
+      border: 1px solid var(--border-bright);
+      border-radius: var(--r);
+      padding: 18px 20px;
+      text-align: left;
+      display: none;
+    }
+
+    .ticket-strip.show {
+      display: block;
+      animation: fadeIn 0.4s ease both;
+    }
+
+    .ticket-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .ticket-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .ticket-key {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .ticket-val {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .ticket-val.green {
+      color: var(--green);
+    }
+
+    .ticket-val.amber {
+      color: var(--amber);
+    }
+
+    .ticket-divider {
+      border: none;
+      border-top: 1px dashed var(--border);
+      margin: 10px 0;
+    }
+
+    /* ═══════════════════════════════════════════════
+   ── VIEW 2: OPERATOR DASHBOARD
+═══════════════════════════════════════════════ */
+    .dashboard {
+      padding: 28px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .dash-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .dash-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .dash-sub {
+      font-size: 0.80rem;
+      color: var(--text-dim);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media(max-width:900px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media(max-width:500px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--border-bright);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: var(--r) var(--r) 0 0;
+    }
+
+    .kpi-green::before {
+      background: linear-gradient(90deg, var(--green), transparent);
+    }
+
+    .kpi-amber::before {
+      background: linear-gradient(90deg, var(--amber), transparent);
+    }
+
+    .kpi-blue::before {
+      background: linear-gradient(90deg, var(--blue), transparent);
+    }
+
+    .kpi-red::before {
+      background: linear-gradient(90deg, var(--red), transparent);
+    }
+
+    .kpi-label {
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .kpi-val {
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .kpi-green .kpi-val {
+      color: var(--green);
+    }
+
+    .kpi-amber .kpi-val {
+      color: var(--amber);
+    }
+
+    .kpi-blue .kpi-val {
+      color: var(--blue);
+    }
+
+    .kpi-red .kpi-val {
+      color: var(--red);
+    }
+
+    .kpi-sub {
+      font-size: 0.73rem;
+      color: var(--text-dim);
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 20px;
+    }
+
+    @media(max-width:860px) {
+      .dash-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-mid);
+    }
+
+    .panel-body {
+      padding: 20px;
+    }
+
+    /* Demand meter */
+    .demand-meter-wrap {
+      margin-bottom: 20px;
+    }
+
+    .demand-meter-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .demand-meter-label {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+
+    .demand-meter-val {
+      font-size: 0.68rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .demand-track {
+      height: 14px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .demand-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      width: 0%;
+    }
+
+    /* Mode indicator */
+    .mode-card {
+      border-radius: var(--r);
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid;
+      transition: all 0.4s;
+    }
+
+    .mode-card.low {
+      background: rgba(56, 182, 255, 0.07);
+      border-color: rgba(56, 182, 255, 0.3);
+    }
+
+    .mode-card.medium {
+      background: var(--amber-dim);
+      border-color: rgba(240, 165, 0, 0.3);
+    }
+
+    .mode-card.high {
+      background: var(--green-dim);
+      border-color: rgba(25, 201, 90, 0.3);
+    }
+
+    .mode-badge {
+      display: inline-block;
+      font-size: 0.60rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 100px;
+      margin-bottom: 10px;
+    }
+
+    .low .mode-badge {
+      background: rgba(56, 182, 255, 0.15);
+      color: var(--blue);
+    }
+
+    .medium .mode-badge {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    .high .mode-badge {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .mode-title {
+      font-size: 1.0rem;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .mode-desc {
+      font-size: 0.76rem;
+      color: var(--text-mid);
+      line-height: 1.5;
+    }
+
+    /* Coach viz */
+    .coach-viz {
+      margin-top: 14px;
+      height: 36px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      display: flex;
+    }
+
+    .coach-family {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.58rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .low .coach-family {
+      background: rgba(56, 182, 255, 0.35);
+      color: var(--blue);
+      width: 25%;
+    }
+
+    .medium .coach-family {
+      background: rgba(240, 165, 0, 0.35);
+      color: var(--amber);
+      width: 50%;
+    }
+
+    .high .coach-family {
+      background: rgba(25, 201, 90, 0.35);
+      color: var(--green);
+      width: 100%;
+    }
+
+    /* Scan log */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 340px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .log-list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .log-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .log-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+
+    .log-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      animation: slideIn 0.3s ease both;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .log-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .log-dot.green {
+      background: var(--green);
+    }
+
+    .log-dot.amber {
+      background: var(--amber);
+    }
+
+    .log-dot.blue {
+      background: var(--blue);
+    }
+
+    .log-info {
+      flex: 1;
+    }
+
+    .log-name {
+      font-size: 0.80rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .log-meta {
+      font-size: 0.70rem;
+      color: var(--text-dim);
+    }
+
+    .log-time {
+      font-size: 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    /* Actions panel */
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .action-item {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+
+    .action-item.triggered {
+      background: var(--green-dim);
+      border-color: rgba(25, 201, 90, 0.3);
+    }
+
+    .action-icon {
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+
+    .action-item.triggered .action-icon {
+      background: var(--green-dim);
+      border-color: rgba(25, 201, 90, 0.35);
+    }
+
+    .action-label {
+      font-size: 0.80rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .action-desc {
+      font-size: 0.70rem;
+      color: var(--text-dim);
+    }
+
+    .action-check {
+      margin-left: auto;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .action-item.triggered .action-check {
+      background: var(--green);
+      border-color: var(--green);
+      color: #03120a;
+      font-weight: 900;
+    }
+
+    /* Sim controls */
+    .sim-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sim-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 10px 14px;
+      border-radius: 100px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.2s;
+    }
+
+    .sim-btn.sb-low {
+      border: 1.5px solid var(--blue);
+      color: var(--blue);
+    }
+
+    .sim-btn.sb-low.sel,
+    .sim-btn.sb-low:hover {
+      background: var(--blue);
+      color: #03120a;
+    }
+
+    .sim-btn.sb-med {
+      border: 1.5px solid var(--amber);
+      color: var(--amber);
+    }
+
+    .sim-btn.sb-med.sel,
+    .sim-btn.sb-med:hover {
+      background: var(--amber);
+      color: #03120a;
+    }
+
+    .sim-btn.sb-high {
+      border: 1.5px solid var(--green);
+      color: var(--green);
+    }
+
+    .sim-btn.sb-high.sel,
+    .sim-btn.sb-high:hover {
+      background: var(--green);
+      color: #03120a;
+    }
+
+    .sim-btn.sb-reset {
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-dim);
+    }
+
+    .sim-btn.sb-reset:hover {
+      border-color: rgba(255, 255, 255, 0.35);
+      color: var(--text-mid);
+    }
+
+    /* Door hold timer */
+    .door-timer {
+      text-align: center;
+      padding: 18px;
+      background: var(--green-dim);
+      border: 1px solid rgba(25, 201, 90, 0.3);
+      border-radius: var(--r);
+      margin-top: 16px;
+      display: none;
+    }
+
+    .door-timer.show {
+      display: block;
+      animation: fadeIn 0.3s ease both;
+    }
+
+    .door-timer-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--green);
+      line-height: 1;
+    }
+
+    .door-timer-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════════════════════
+   ── VIEW 3: STATION DISPLAY BOARD
+═══════════════════════════════════════════════ */
+    .display-board {
+      min-height: calc(100vh - 53px);
+      background: #000;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .board-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--green);
+      padding-bottom: 16px;
+    }
+
+    .board-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .board-title span {
+      color: var(--green);
+    }
+
+    .board-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+    }
+
+    @media(max-width:700px) {
+      .board-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .board-panel {
+      background: #0a1a0f;
+      border: 2px solid rgba(25, 201, 90, 0.25);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .board-panel-title {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(25, 201, 90, 0.6);
+      margin-bottom: 16px;
+    }
+
+    /* Big demand number */
+    .board-demand-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .board-demand-label {
+      font-size: 0.80rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 20px;
+    }
+
+    /* Board mode */
+    .board-mode {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .board-mode-title {
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .board-mode-desc {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.55);
+    }
+
+    /* Board instructions */
+    .board-instruction {
+      background: rgba(25, 201, 90, 0.1);
+      border: 1px solid rgba(25, 201, 90, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.4;
+      text-align: center;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Board queue */
+    .board-queue-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(25, 201, 90, 0.1);
+    }
+
+    .board-queue-row:last-child {
+      border-bottom: none;
+    }
+
+    .board-queue-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.80rem;
+      color: var(--green);
+    }
+
+    .board-queue-type {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .board-queue-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.70rem;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    /* Alert strip */
+    .alert-strip {
+      background: #0a1a0f;
+      border: 2px solid var(--green);
+      border-radius: 12px;
+      padding: 18px 24px;
+      display: none;
+      align-items: center;
+      gap: 16px;
+      animation: alert-flash 1s ease-in-out infinite alternate;
+    }
+
+    .alert-strip.show {
+      display: flex;
+    }
+
+    @keyframes alert-flash {
+      from {
+        border-color: var(--green);
+      }
+
+      to {
+        border-color: rgba(25, 201, 90, 0.4);
+      }
+    }
+
+    .alert-icon {
+      font-size: 1.5rem;
+    }
+
+    .alert-text {
+      flex: 1;
+      font-size: 0.90rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .alert-dismiss {
+      padding: 8px 16px;
+      border-radius: 100px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 0.70rem;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .alert-dismiss:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      color: var(--text);
+    }
+
+    /* ═══════════════════════════════════════════════
+   ── VIEW 4: SYSTEM FLOW
+═══════════════════════════════════════════════ */
+    .flow-view {
+      padding: 36px 28px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .flow-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .flow-header h2 {
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .flow-header h2 span {
+      color: var(--green);
+    }
+
+    .flow-header p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 24px;
+      align-items: stretch;
+      padding: 0 0 0 0;
+    }
+
+    .flow-step-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: 48px;
+    }
+
+    .flow-step-num {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--g2);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--green);
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .flow-step.active .flow-step-num {
+      background: var(--green);
+      color: #03120a;
+      border-color: var(--green);
+      box-shadow: 0 0 20px var(--green-glow);
+    }
+
+    .flow-step-line {
+      width: 2px;
+      flex: 1;
+      background: var(--border);
+      min-height: 24px;
+    }
+
+    .flow-step.last .flow-step-line {
+      display: none;
+    }
+
+    .flow-step-right {
+      padding: 0 0 32px 0;
+      flex: 1;
+    }
+
+    .flow-step-title {
+      font-size: 1.0rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      padding-top: 10px;
+    }
+
+    .flow-step-desc {
+      font-size: 0.80rem;
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .flow-step-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .tag-green {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(25, 201, 90, 0.25);
+    }
+
+    .tag-amber {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(240, 165, 0, 0.25);
+    }
+
+    .tag-blue {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid rgba(56, 182, 255, 0.2);
+    }
+
+    /* ═══════════════════════════════════════════════
+   MOBILE RESPONSIVENESS OVERRIDES
+═══════════════════════════════════════════════ */
+
+    @media (max-width: 768px) {
+
+      /* 1. Navigation Bar - make it horizontally scrollable on mobile */
+      .nav {
+        padding: 0 16px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Smooth scrolling on iOS */
+        scrollbar-width: none;
+        /* Hide scrollbar on Firefox */
+      }
+
+      .nav::-webkit-scrollbar {
+        display: none;
+        /* Hide scrollbar on Chrome/Safari/Edge */
+      }
+
+      .nav-logo {
+        margin-right: 20px;
+        font-size: 0.95rem;
+      }
+
+      .tab {
+        padding: 16px 12px;
+        font-size: 0.75rem;
+      }
+
+      .nav-right {
+        display: none;
+        /* Hide 'System Live' badge to save space on small screens */
+      }
+
+      /* 2. Family Scan Portal */
+      .scan-portal {
+        padding: 20px 16px;
+      }
+
+      .scan-card {
+        padding: 30px 20px;
+      }
+
+      .scan-title {
+        font-size: 1.3rem;
+      }
+
+      /* Stack the form inputs (Equipment & Children) vertically on mobile */
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      /* 3. Operator Dashboard */
+      .dashboard {
+        padding: 16px;
+      }
+
+      .dash-header {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .dash-title {
+        font-size: 1.25rem;
+      }
+
+      /* 4. Station Display Board */
+      .display-board {
+        padding: 16px;
+      }
+
+      .board-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+
+      .board-demand-num {
+        font-size: 3.5rem;
+        /* Scale down the giant KPI number */
+      }
+
+      /* 5. System Flow */
+      .flow-view {
+        padding: 24px 16px;
+      }
+
+      .flow-step {
+        gap: 16px;
+      }
+
+      .flow-header h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Extra tweaks for very small phones (under 480px) */
+    @media (max-width: 480px) {
+      .qr-container {
+        width: 160px;
+        height: 160px;
+      }
+
+      .qr-frame {
+        width: 160px;
+        height: 160px;
+      }
+
+      .qr-svg {
+        width: 100px;
+        height: 100px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══════ NAV ═══════ -->
+  <nav class="nav">
+    <div class="nav-logo">
+      <div class="nav-logo-dot"></div>
+      SafeBoard
+    </div>
+    <button class="tab active" onclick="showView('scan')">Family Scan</button>
+    <button class="tab" onclick="showView('dashboard')">Operator Dashboard</button>
+    <button class="tab" onclick="showView('board')">Station Display</button>
+    <button class="tab" onclick="showView('flow')">System Flow</button>
+    <div class="nav-right">
+      <div class="live-badge">System Live</div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════
+     VIEW 1: FAMILY SCAN PORTAL
+═══════════════════════════════════════════════ -->
+  <div class="view active" id="view-scan">
+    <div class="scan-portal">
+      <div class="scan-card">
+        <div class="scan-station-label">Sentral Station · Platform 4</div>
+        <h1 class="scan-title">Family <span>Priority</span> Check-In</h1>
+        <p class="scan-subtitle">Scan to activate family boarding mode and reserve your space on the train.</p>
+
+        <!-- QR visual -->
+        <div class="qr-container">
+          <div class="qr-frame" id="qrFrame" onclick="triggerScan()" role="button" tabindex="0"
+            aria-label="Tap to scan QR code" onkeydown="if(event.key==='Enter'||event.key===' ')triggerScan()">
+            <div class="qr-corner-tr"></div>
+            <div class="qr-corner-bl"></div>
+            <div class="scan-line" id="scanLine"></div>
+            <div id="qrContent">
+              <!-- SVG QR pattern -->
+              <svg class="qr-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
+                <rect x="16" y="16" width="18" height="18" fill="#19c95a" rx="2" />
+                <rect x="60" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
+                <rect x="66" y="16" width="18" height="18" fill="#19c95a" rx="2" />
+                <rect x="10" y="60" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
+                <rect x="16" y="66" width="18" height="18" fill="#19c95a" rx="2" />
+                <rect x="46" y="10" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="22" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="10" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="22" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="58" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="70" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="82" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="58" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="70" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="70" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="70" y="70" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="58" y="82" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="82" y="82" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="82" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="34" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size:0.70rem;color:var(--text-dim);margin-top:-16px;margin-bottom:20px;letter-spacing:0.5px;">Tap
+          the QR above to simulate a scan</p>
+
+        <!-- Form -->
+        <div class="scan-form" id="scanForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Family Group Size</label>
+              <select class="form-select" id="numChildren">
+                <option value="2">2 people</option>
+                <option value="3">3 people</option>
+                <option value="4">4 people</option>
+                <option value="5">5+ people</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Equipment</label>
+              <select class="form-select" id="equipment">
+                <option value="stroller">Stroller</option>
+                <option value="wagon">Wagon</option>
+                <option value="both">Both</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Destination</label>
+            <select class="form-select" id="destination">
+              <option>KL Sentral</option>
+              <option>Bandar Tasik Selatan</option>
+              <option>Salak Selatan</option>
+              <option>Seputeh</option>
+              <option>Kuala Lumpur</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="scan-btn" id="scanBtn" onclick="doCheckIn()">
+          Check In — Activate Family Boarding
+        </button>
+
+        <div class="status-msg" id="statusMsg"></div>
+
+        <div class="ticket-strip" id="ticketStrip">
+          <div class="ticket-row">
+            <span class="ticket-key">Check-In ID</span>
+            <span class="ticket-val green" id="ticketId">—</span>
+          </div>
+          <hr class="ticket-divider">
+          <div class="ticket-row">
+            <span class="ticket-key">Mode Activated</span>
+            <span class="ticket-val amber" id="ticketMode">—</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-key">Coach Section</span>
+            <span class="ticket-val" id="ticketSection">—</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-key">Door Hold</span>
+            <span class="ticket-val green" id="ticketDoor">—</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-key">Board at Car</span>
+            <span class="ticket-val" id="ticketCar">—</span>
+          </div>
+          <hr class="ticket-divider">
+          <div class="ticket-row">
+            <span class="ticket-key">Status</span>
+            <span class="ticket-val green">✓ READY TO BOARD</span>
+          </div>
+          <button onclick="showView('dashboard')"
+            style="margin-top:14px;width:100%;padding:10px;background:transparent;border:1px solid var(--border-bright);border-radius:var(--r-sm);color:var(--green);font-family:'Outfit',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:all 0.2s;"
+            onmouseover="this.style.background='var(--green-dim)'" onmouseout="this.style.background='transparent'">
+            View Operator Dashboard →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+     VIEW 2: OPERATOR DASHBOARD
+═══════════════════════════════════════════════ -->
+  <div class="view" id="view-dashboard">
+    <div class="dashboard">
+      <div class="dash-header">
+        <div>
+          <div class="dash-title">Operator Dashboard</div>
+          <div class="dash-sub">Sentral Station · Platform 4 · Real-time family demand monitoring</div>
+        </div>
+        <div class="live-badge">Live Feed</div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-green">
+          <div class="kpi-label">Families Checked In</div>
+          <div class="kpi-val" id="kpiFamilies">0</div>
+          <div class="kpi-sub">on platform now</div>
+        </div>
+        <div class="kpi-card kpi-amber">
+          <div class="kpi-label">Current Demand</div>
+          <div class="kpi-val" id="kpiDemand">0%</div>
+          <div class="kpi-sub">capacity score</div>
+        </div>
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">Door Hold Time</div>
+          <div class="kpi-val" id="kpiDoor">0s</div>
+          <div class="kpi-sub">extended boarding</div>
+        </div>
+        <div class="kpi-card kpi-red">
+          <div class="kpi-label">Active Mode</div>
+          <div class="kpi-val" id="kpiMode" style="font-size:1.1rem;padding-top:8px;">STANDBY</div>
+          <div class="kpi-sub">AI allocation</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Left panel -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- Demand meter -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Real-Time Family Demand</span>
+              <span class="live-badge">Auto</span>
+            </div>
+            <div class="panel-body">
+              <div class="demand-meter-wrap">
+                <div class="demand-meter-labels">
+                  <span class="demand-meter-label">Demand Level</span>
+                  <span class="demand-meter-val" id="meterPct">0%</span>
+                </div>
+                <div class="demand-track">
+                  <div class="demand-fill" id="demandFill" style="background:linear-gradient(90deg,#38b6ff,#19c95a);">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mode indicator -->
+              <div class="mode-card low" id="modeCard">
+                <div class="mode-badge" id="modeBadge">STANDBY</div>
+                <div class="mode-title" id="modeTitle">Awaiting Check-Ins</div>
+                <div class="mode-desc" id="modeDesc">No families detected. Standard boarding procedures apply.</div>
+                <div class="coach-viz">
+                  <div class="coach-family" id="coachFill"></div>
+                </div>
+              </div>
+
+              <!-- Door timer -->
+              <!-- <div class="door-timer" id="doorTimer">
+                <div class="door-timer-num" id="doorCount">29</div>
+                <div class="door-timer-label">seconds remaining · door hold active</div>
+              </div> -->
+
+              <!-- Sim controls -->
+              <div style="margin-top:16px;">
+                <div class="panel-title" style="margin-bottom:10px;">Simulate Demand</div>
+                <div class="sim-row">
+                  <button class="sim-btn sb-low" onclick="simDemand('low')">Low</button>
+                  <button class="sim-btn sb-med" onclick="simDemand('medium')">Medium</button>
+                  <button class="sim-btn sb-high" onclick="simDemand('high')">High</button>
+                  <button class="sim-btn sb-reset" onclick="simDemand('reset')">Reset</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- System actions -->
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">Triggered System Actions</span></div>
+            <div class="panel-body">
+              <div class="action-list" id="actionList">
+
+                <div class="action-item" data-action="qr">
+                  <div class="action-icon">
+                    <!-- QR Code icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="5" height="5" x="3" y="3" rx="1" />
+                      <rect width="5" height="5" x="16" y="3" rx="1" />
+                      <rect width="5" height="5" x="3" y="16" rx="1" />
+                      <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+                      <path d="M21 21v.01" />
+                      <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+                      <path d="M3 12h.01" />
+                      <path d="M12 3h.01" />
+                      <path d="M12 16v.01" />
+                      <path d="M16 12h1" />
+                      <path d="M21 12v.01" />
+                      <path d="M12 21v-1" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="action-label">QR Check-In Processed</div>
+                    <div class="action-desc">Family presence confirmed via scan</div>
+                  </div>
+                  <div class="action-check" id="act-qr"></div>
+                </div>
+
+                <div class="action-item" data-action="ai">
+                  <div class="action-icon">
+                    <!-- Bot / AI icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 8V4H8" />
+                      <rect width="16" height="12" x="4" y="8" rx="2" />
+                      <path d="M2 14h2" />
+                      <path d="M20 14h2" />
+                      <path d="M15 13v2" />
+                      <path d="M9 13v2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="action-label">AI Demand Confirmed</div>
+                    <div class="action-desc">Camera + sensor data validated</div>
+                  </div>
+                  <div class="action-check" id="act-ai"></div>
+                </div>
+
+                <div class="action-item" data-action="door">
+                  <div class="action-icon">
+                    <!-- Door icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M13 4h3a2 2 0 0 1 2 2v14" />
+                      <path d="M2 20h3" />
+                      <path d="M13 20h9" />
+                      <path d="M10 12v.01" />
+                      <path
+                        d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="action-label">Door Hold Extended</div>
+                    <div class="action-desc">+29s boarding window activated</div>
+                  </div>
+                  <div class="action-check" id="act-door"></div>
+                </div>
+
+                <div class="action-item" data-action="display">
+                  <div class="action-icon">
+                    <!-- Monitor icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="20" height="14" x="2" y="3" rx="2" />
+                      <path d="M8 21h8" />
+                      <path d="M12 17v4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="action-label">Station Display Updated</div>
+                    <div class="action-desc">Boarding instructions pushed live</div>
+                  </div>
+                  <div class="action-check" id="act-display"></div>
+                </div>
+
+                <div class="action-item" data-action="space">
+                  <div class="action-icon">
+                    <!-- Train icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="16" height="16" x="4" y="3" rx="2" />
+                      <path d="M4 11h16" />
+                      <path d="M12 3v8" />
+                      <path d="m8 19-2 3" />
+                      <path d="m16 19 2 3" />
+                      <path d="M8 15h.01" />
+                      <path d="M16 15h.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="action-label">Space Allocation Set</div>
+                    <div class="action-desc">Family coach section configured</div>
+                  </div>
+                  <div class="action-check" id="act-space"></div>
+                </div>
+
+                <div class="action-item" data-action="staff">
+                  <div class="action-icon">
+                    <!-- Shield / Staff icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path
+                        d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="action-label">Staff Notified</div>
+                    <div class="action-desc">Platform staff alerted to assist</div>
+                  </div>
+                  <div class="action-check" id="act-staff"></div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right column -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- Check-In Log -->
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">Check-In Log</span>
+              <button onclick="clearLog()"
+                style="font-size:0.65rem;background:none;border:1px solid var(--border);color:var(--text-dim);padding:4px 10px;border-radius:6px;cursor:pointer;font-family:Outfit,sans-serif;">Clear</button>
+            </div>
+            <div class="panel-body">
+              <div class="log-list" id="logList">
+                <div style="text-align:center;padding:24px;color:var(--text-dim);font-size:0.80rem;">
+                  No check-ins yet. Scan QR to begin.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+     VIEW 3: STATION DISPLAY BOARD
+═══════════════════════════════════════════════ -->
+  <div class="view" id="view-board">
+    <div class="display-board">
+      <div class="board-header">
+        <div class="board-title">SafeBoard <span>Family System</span> · Platform 4</div>
+        <div class="board-clock" id="boardClock">--:--:--</div>
+      </div>
+
+      <!-- Alert strip -->
+      <div class="alert-strip" id="alertStrip">
+        <div class="alert-icon">🚨</div>
+        <div class="alert-text" id="alertText">HIGH DEMAND — Full family-priority coach activated. All families
+          proceed to Coach 3.</div>
+        <button class="alert-dismiss" onclick="dismissAlert()">Dismiss</button>
+      </div>
+
+      <div class="board-grid">
+        <!-- Demand panel -->
+        <div class="board-panel">
+          <div class="board-panel-title">Current Family Demand</div>
+          <div class="board-demand-num" id="boardDemandNum" style="color:var(--green)">0</div>
+          <div class="board-demand-label" id="boardDemandLabel">families on platform</div>
+
+          <div class="board-mode" id="boardMode"
+            style="background:rgba(56,182,255,0.07);border:1px solid rgba(56,182,255,0.3);">
+            <div class="board-mode-title" id="boardModeTitle" style="color:var(--blue)">STANDBY MODE</div>
+            <div class="board-mode-desc" id="boardModeDesc">Standard boarding. No family priority active.</div>
+          </div>
+
+          <div class="demand-track" style="height:16px;border-radius:100px;overflow:hidden;">
+            <div class="demand-fill" id="boardDemandFill"
+              style="width:0%;background:linear-gradient(90deg,#38b6ff,#19c95a);height:100%;border-radius:100px;transition:width 0.8s ease;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Instruction panel -->
+        <div class="board-panel">
+          <div class="board-panel-title">Boarding Instructions</div>
+          <div class="board-instruction" id="boardInstruction">
+            Please proceed normally. No family priority active.
+          </div>
+          <div style="margin-top:16px;">
+            <div class="board-panel-title" style="margin-bottom:10px;">Door Hold Status</div>
+            <div
+              style="display:flex;align-items:center;gap:12px;background:rgba(25,201,90,0.06);border:1px solid var(--border);border-radius:8px;padding:14px;">
+              <div style="font-size:1.8rem;font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:900;"
+                id="boardDoorHold">0s</div>
+              <div style="font-size:0.75rem;color:rgba(255,255,255,0.45);line-height:1.4;" id="boardDoorDesc">No hold
+                active. Standard door timing.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Queue panel -->
+        <div class="board-panel">
+          <div class="board-panel-title">Family Check-In Queue</div>
+          <div id="boardQueue">
+            <div style="text-align:center;padding:20px;color:rgba(255,255,255,0.25);font-size:0.80rem;">Queue empty
+            </div>
+          </div>
+        </div>
+
+        <!-- Coach layout panel -->
+        <div class="board-panel">
+          <div class="board-panel-title">Coach Space Allocation</div>
+          <div style="margin-bottom:14px;">
+            <div
+              style="display:flex;justify-content:space-between;font-size:0.70rem;color:rgba(255,255,255,0.4);margin-bottom:6px;">
+              <span>Coach layout</span>
+              <span id="boardCoachPct">0% family zone</span>
+            </div>
+            <div
+              style="height:48px;border-radius:100px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);overflow:hidden;display:flex;">
+              <div id="boardCoachFill"
+                style="height:100%;border-radius:100px;width:0%;transition:width 0.8s ease;display:flex;align-items:center;justify-content:center;font-size:0.60rem;font-weight:800;letter-spacing:1.5px;color:var(--green);">
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;" id="boardCoachDetails">
+            <div
+              style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(25,201,90,0.05);border:1px solid var(--border);border-radius:6px;">
+              <span style="font-size:0.75rem;color:rgba(255,255,255,0.55);">Priority Seats</span>
+              <span style="font-size:0.75rem;font-weight:700;color:var(--green);" id="bdPrioritySeats">0 reserved</span>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(25,201,90,0.05);border:1px solid var(--border);border-radius:6px;">
+              <span style="font-size:0.75rem;color:rgba(255,255,255,0.55);">🛺 Strollers</span>
+              <span style="font-size:0.75rem;font-weight:700;color:var(--green);" id="bdStrollers">0</span>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(25,201,90,0.05);border:1px solid var(--border);border-radius:6px;">
+              <span style="font-size:0.75rem;color:rgba(255,255,255,0.55);">🛒 Wagons</span>
+              <span style="font-size:0.75rem;font-weight:700;color:var(--green);" id="bdWagons">0</span>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(25,201,90,0.05);border:1px solid var(--border);border-radius:6px;">
+              <span style="font-size:0.75rem;color:rgba(255,255,255,0.55);">🛺🛒 Both</span>
+              <span style="font-size:0.75rem;font-weight:700;color:var(--green);" id="bdBoth">0</span>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;padding:8px 10px;background:rgba(25,201,90,0.05);border:1px solid var(--border);border-radius:6px;">
+              <span style="font-size:0.75rem;color:rgba(255,255,255,0.55);">Foldable Seats</span>
+              <span style="font-size:0.75rem;font-weight:700;color:var(--amber);" id="bdFoldSeats">folded in</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+     VIEW 4: SYSTEM FLOW
+═══════════════════════════════════════════════ -->
+  <div class="view" id="view-flow">
+    <div class="flow-view">
+      <div class="flow-header">
+        <h2>QR Check-In <span>System Flow</span></h2>
+        <p>How a single family scan triggers the full SafeBoard response chain, from detection to boarding.</p>
+      </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-num">01</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">Family Arrives at Priority Zone</div>
+            <div class="flow-step-desc">A family member with a stroller, wagon, or young child enters the green Family
+              Priority Zone on the platform. The designated zone separates family boarding from the general queue.</div>
+            <div class="flow-step-tags">
+              <span class="tag tag-green">Platform Zone</span>
+              <span class="tag tag-blue">Stroller Parking</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-num">02</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">QR Code Scan — Direct Family Input</div>
+            <div class="flow-step-desc">Family member scans the QR kiosk. The scan captures: group size, equipment type
+              (stroller/wagon), and destination. A unique session ID is generated and logged in real-time.</div>
+            <div class="flow-step-tags">
+              <span class="tag tag-green">QR Check-In</span>
+              <span class="tag tag-amber">Session ID Created</span>
+              <span class="tag tag-blue">Data Captured</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-num">03</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">AI Camera + Sensor Validation</div>
+            <div class="flow-step-desc">AI overhead cameras cross-validate the QR signal — confirming stroller
+              presence, child detection, and crowd density. QR + AI data are fused to compute a precise demand score.
+            </div>
+            <div class="flow-step-tags">
+              <span class="tag tag-green">AI Detection</span>
+              <span class="tag tag-blue">Sensor Fusion</span>
+              <span class="tag tag-amber">Demand Score</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-num">04</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">Dynamic Mode Selected</div>
+            <div class="flow-step-desc">Based on the combined demand score, the system selects one of three modes:
+              <strong style="color:var(--blue)">Low</strong> (1–2 families → small section), <strong
+                style="color:var(--amber)">Medium</strong> (3–5 families → half coach), <strong
+                style="color:var(--green)">High</strong> (6+ families → full priority coach).
+            </div>
+            <div class="flow-step-tags">
+              <span class="tag tag-blue">Low Demand</span>
+              <span class="tag tag-amber">Medium Demand</span>
+              <span class="tag tag-green">High Demand</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-num">05</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">Train Coach Space Allocated</div>
+            <div class="flow-step-desc">The train receives the allocation command: foldable seats deploy, stroller
+              bays are cleared, priority seating is reserved with green indicators. The flexible section adapts to
+              match the selected mode.</div>
+            <div class="flow-step-tags">
+              <span class="tag tag-green">Coach Config</span>
+              <span class="tag tag-blue">Foldable Seats</span>
+              <span class="tag tag-amber">Stroller Bay</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-num">06</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">Door Hold + Boarding Lane Activated</div>
+            <div class="flow-step-desc">Train door stay-open time extends by +29 seconds. The Family Boarding Lane
+              activates with green lighting and directional indicators. Station staff receive a push notification to
+              assist.</div>
+            <div class="flow-step-tags">
+              <span class="tag tag-green">+29s Door Hold</span>
+              <span class="tag tag-amber">Lane Activated</span>
+              <span class="tag tag-blue">Staff Alerted</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-num">07</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">Station Display Updated</div>
+            <div class="flow-step-desc">Platform screens and train door displays update in real-time: boarding
+              instructions, active mode, Coach number, door hold countdown. All families in the queue receive
+              confirmation of their boarding slot.</div>
+            <div class="flow-step-tags">
+              <span class="tag tag-green">Display Live</span>
+              <span class="tag tag-blue">Notification Sent</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-step active last">
+          <div class="flow-step-left">
+            <div class="flow-step-num">✓</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-right">
+            <div class="flow-step-title">Family Boards Safely — No Rushing</div>
+            <div class="flow-step-desc">With extra door time, dedicated lane, reserved space, and staff support, the
+              family boards safely with stroller/wagon. The system returns to monitoring mode and re-evaluates demand
+              for the next train.</div>
+            <div class="flow-step-tags">
+              <span class="tag tag-green">Safe Boarding</span>
+              <span class="tag tag-green">Stress Reduced</span>
+              <span class="tag tag-blue">System Resets</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+     JAVASCRIPT ENGINE
+═══════════════════════════════════════════════ -->
+  <script>
+    // ── STATE ──────────────────────────────────────
+    const state = {
+      families: 0,
+      demand: 0,
+      mode: 'standby',
+      log: [],
+      doorTimer: null,
+      doorCount: 0,
+      actionsTriggered: [],
+    };
+
+    const MODES = {
+      standby: {
+        label: 'STANDBY',
+        title: 'Awaiting Check-Ins',
+        desc: 'No families detected. Standard boarding procedures apply.',
+        color: '#38b6ff',
+        bg: 'low',
+        coach: 0,
+        coachText: '',
+        door: 0,
+        seats: 0, bays: 0, fold: 'folded in',
+        instruction: 'Please proceed normally. No family priority active.',
+        alert: null,
+        car: 'Any',
+        section: 'General seating',
+      },
+      low: {
+        label: 'LOW DEMAND',
+        title: 'Small Section Active',
+        desc: '1–2 families on platform. Small family section reserved (~25% of coach).',
+        color: '#38b6ff',
+        bg: 'low',
+        coach: 25,
+        coachText: 'Family',
+        door: 15,
+        seats: 4, bays: 1, fold: '2 deployed',
+        instruction: 'Families: proceed to Coach 3, Door A. Priority seats reserved. Stroller bay open.',
+        alert: null,
+        car: 'Coach 3 · Door A',
+        section: 'Rows 1–4 (family section)',
+      },
+      medium: {
+        label: 'MEDIUM DEMAND',
+        title: 'Half Coach Priority',
+        desc: '3–5 families on platform. Half the coach reconfigured for family priority.',
+        color: '#f0a500',
+        bg: 'medium',
+        coach: 50,
+        coachText: 'Family Priority',
+        door: 22,
+        seats: 8, bays: 2, fold: '4 deployed',
+        instruction: 'Families: proceed to Coach 3. Half coach reserved. Foldable seats deployed for strollers.',
+        alert: 'MEDIUM DEMAND — Half coach family priority active. Staff please proceed to Coach 3.',
+        car: 'Coach 3',
+        section: 'Rows 1–8 (half coach)',
+      },
+      high: {
+        label: 'HIGH DEMAND',
+        title: 'Full Family-Priority Coach',
+        desc: '6+ families on platform. Entire coach is family-priority zone. Maximum door hold.',
+        color: '#19c95a',
+        bg: 'high',
+        coach: 100,
+        coachText: 'FULL FAMILY PRIORITY',
+        door: 29,
+        seats: 16, bays: 4, fold: 'all deployed',
+        instruction: '🚨 HIGH DEMAND — ALL families board Coach 3. Full priority coach. Staff on standby. +29s door hold.',
+        alert: 'HIGH DEMAND — Full family-priority coach activated. All families proceed to Coach 3.',
+        car: 'Coach 3 (Full Coach)',
+        section: 'Entire Coach 3 — family zone',
+      }
+    };
+
+    // ── NAVIGATION ─────────────────────────────────
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('view-' + id).classList.add('active');
+      const tabs = document.querySelectorAll('.tab');
+      const map = { scan: 0, dashboard: 1, board: 2, flow: 3 };
+      tabs[map[id]].classList.add('active');
+      if (id === 'board') updateBoard();
+    }
+
+    // ── QR CHECK-IN LOGIC ──────────────────────────
+    let scanning = false;
+    let checkInDone = false;
+
+    function triggerScan() {
+      if (scanning || checkInDone) return;
+      const frame = document.getElementById('qrFrame');
+      frame.classList.add('scanning');
+      scanning = true;
+      document.getElementById('scanBtn').disabled = true;
+      showStatus('info', '📡 Scanning QR code… activating family detection system…');
+      setTimeout(() => {
+        frame.classList.remove('scanning');
+        scanning = false;
+        document.getElementById('scanBtn').disabled = false;
+        showStatus('ok', '✅ QR code detected! Complete the form and tap Check In to activate boarding mode.');
+      }, 2200);
+    }
+
+    function doCheckIn() {
+      if (scanning) return;
+      const btn = document.getElementById('scanBtn');
+      btn.disabled = true;
+      btn.textContent = 'Processing…';
+
+      const frame = document.getElementById('qrFrame');
+      frame.classList.add('scanning');
+
+      setTimeout(() => {
+        frame.classList.remove('scanning');
+        frame.classList.add('success');
+        document.getElementById('qrContent').innerHTML = '<div class="qr-success-icon">✅</div>';
+
+        // Build entry
+        const children = parseInt(document.getElementById('numChildren').value);
+        const equipment = document.getElementById('equipment').value;
+        const dest = document.getElementById('destination').value;
+        const id = 'SB-' + Date.now().toString(36).toUpperCase().slice(-6);
+        const ts = new Date().toLocaleTimeString();
+
+        // Update state
+        state.families = Math.min(state.families + 1, 8);
+        state.demand = Math.min(100, state.families * 14);
+        state.log.unshift({ id, children, equipment, dest, ts });
+
+        // Determine mode
+        let newMode = 'standby';
+        if (state.families >= 6) newMode = 'high';
+        else if (state.families >= 3) newMode = 'medium';
+        else if (state.families >= 1) newMode = 'low';
+        state.mode = newMode;
+        const m = MODES[newMode];
+
+        // Show ticket
+        document.getElementById('ticketId').textContent = id;
+        document.getElementById('ticketMode').textContent = m.label;
+        document.getElementById('ticketSection').textContent = m.section;
+        document.getElementById('ticketDoor').textContent = '+' + m.door + 's extended';
+        document.getElementById('ticketCar').textContent = m.car;
+        document.getElementById('ticketStrip').classList.add('show');
+        document.getElementById('scanForm').style.display = 'none';
+
+        showStatus('ok', `Check-in confirmed! ${m.label} activated. Proceed to ${m.car}. Door hold: +${m.door}s.`);
+
+        btn.textContent = 'Checked In - Scan Another';
+        btn.disabled = false;
+        btn.onclick = resetScan;
+
+        // Update all panels
+        updateDashboard(newMode);
+        updateBoard();
+        checkInDone = true;
+      }, 1800);
+    }
+
+    function resetScan() {
+      checkInDone = false;
+      const frame = document.getElementById('qrFrame');
+      frame.classList.remove('success');
+      document.getElementById('qrContent').innerHTML = `
+    <svg class="qr-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3"/>
+      <rect x="16" y="16" width="18" height="18" fill="#19c95a" rx="2"/>
+      <rect x="60" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3"/>
+      <rect x="66" y="16" width="18" height="18" fill="#19c95a" rx="2"/>
+      <rect x="10" y="60" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3"/>
+      <rect x="16" y="66" width="18" height="18" fill="#19c95a" rx="2"/>
+      <rect x="46" y="10" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="46" y="22" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="10" y="46" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="22" y="46" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="46" y="46" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="58" y="46" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="70" y="46" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="82" y="46" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="46" y="58" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="58" y="58" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="70" y="58" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="46" y="70" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="70" y="70" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="58" y="82" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="82" y="82" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="82" y="58" width="8" height="8" fill="#19c95a" rx="1"/>
+      <rect x="34" y="46" width="8" height="8" fill="#19c95a" rx="1"/>
+    </svg>`;
+      document.getElementById('scanForm').style.display = 'flex';
+      document.getElementById('ticketStrip').classList.remove('show');
+      document.getElementById('statusMsg').classList.remove('show');
+      const btn = document.getElementById('scanBtn');
+      btn.textContent = 'Check In — Activate Family Boarding';
+      btn.onclick = doCheckIn;
+    }
+
+    function showStatus(type, msg) {
+      const el = document.getElementById('statusMsg');
+      el.className = 'status-msg show ' + type;
+      el.textContent = msg;
+    }
+
+    // ── DASHBOARD ──────────────────────────────────
+    function updateDashboard(mode) {
+      const m = MODES[mode];
+
+      // KPIs
+      document.getElementById('kpiFamilies').textContent = state.families;
+      document.getElementById('kpiDemand').textContent = state.demand + '%';
+      document.getElementById('kpiDoor').textContent = m.door + 's';
+      document.getElementById('kpiMode').textContent = m.label;
+
+      // Demand fill
+      document.getElementById('demandFill').style.width = state.demand + '%';
+      document.getElementById('meterPct').textContent = state.demand + '%';
+
+      // Mode card
+      const card = document.getElementById('modeCard');
+      card.className = 'mode-card ' + m.bg;
+      document.getElementById('modeBadge').textContent = m.label;
+      document.getElementById('modeTitle').textContent = m.title;
+      document.getElementById('modeDesc').textContent = m.desc;
+
+      // Coach fill
+      const cf = document.getElementById('coachFill');
+      cf.style.width = m.coach + '%';
+      cf.textContent = m.coachText;
+      if (mode === 'high') cf.style.borderRadius = '100px';
+      else cf.style.borderRadius = '100px 0 0 100px';
+
+      // Door timer
+      if (m.door > 0) {
+        startDoorTimer(m.door);
+      }
+
+      // Actions — stagger
+      const actionOrder = ['qr', 'ai', 'door', 'display', 'space', 'staff'];
+      const needed = mode === 'high' ? actionOrder
+        : mode === 'medium' ? actionOrder.slice(0, 5)
+          : mode === 'low' ? actionOrder.slice(0, 4)
+            : [];
+      document.querySelectorAll('.action-item').forEach(el => {
+        el.classList.remove('triggered');
+        const chk = el.querySelector('.action-check');
+        if (chk) chk.textContent = '';
+      });
+      needed.forEach((a, i) => {
+        setTimeout(() => {
+          const el = document.querySelector(`[data-action="${a}"]`);
+          if (el) {
+            el.classList.add('triggered');
+            const chk = el.querySelector('.action-check');
+            if (chk) chk.textContent = '✓';
+          }
+        }, i * 250);
+      });
+
+      // Log
+      if (state.log.length > 0) {
+        const entry = state.log[0];
+        addLogEntry(entry);
+      }
+    }
+
+    function startDoorTimer(seconds) {
+      if (state.doorTimer) clearInterval(state.doorTimer);
+      state.doorCount = seconds;
+      const timer = document.getElementById('doorTimer');
+      const count = document.getElementById('doorCount');
+      timer.classList.add('show');
+      count.textContent = state.doorCount;
+      state.doorTimer = setInterval(() => {
+        state.doorCount--;
+        count.textContent = state.doorCount;
+        if (state.doorCount <= 0) {
+          clearInterval(state.doorTimer);
+          timer.classList.remove('show');
+        }
+      }, 1000);
+    }
+
+    function addLogEntry(entry) {
+      const list = document.getElementById('logList');
+      if (list.querySelector('div[style]')) list.innerHTML = '';
+      const colors = { low: 'blue', medium: 'amber', high: 'green' };
+      const color = colors[state.mode] || 'blue';
+      const eq = { stroller: '🛺 Stroller', wagon: '🛒 Wagon', both: '🛺+🛒 Both', none: '👟 None' };
+      const li = document.createElement('div');
+      li.className = 'log-item';
+      li.innerHTML = `
+    <div class="log-dot ${color}"></div>
+    <div class="log-info">
+      <div class="log-name">${entry.id} · ${entry.children} ${entry.children > 1 ? 'people' : 'person'}</div>
+      <div class="log-meta">${eq[entry.equipment] || entry.equipment} · → ${entry.dest}</div>
+    </div>
+    <div class="log-time">${entry.ts}</div>`;
+      list.insertBefore(li, list.firstChild);
+    }
+
+    function clearLog() {
+      state.log = [];
+      state.families = 0;
+      state.demand = 0;
+      state.mode = 'standby';
+      document.getElementById('logList').innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-dim);font-size:0.80rem;">No check-ins yet.</div>';
+      updateDashboard('standby');
+    }
+
+    function simDemand(level) {
+      document.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('sel'));
+      if (level === 'reset') {
+        state.families = 0; state.demand = 0; state.mode = 'standby';
+        updateDashboard('standby');
+        return;
+      }
+      const fam = { low: 2, medium: 4, high: 7 };
+      const dem = { low: 28, medium: 55, high: 95 };
+      state.families = fam[level];
+      state.demand = dem[level];
+      state.mode = level;
+      document.querySelector('.sim-btn.sb-' + (level === 'medium' ? 'med' : level)).classList.add('sel');
+
+      // Inject a fake log entry
+      const id = 'SIM-' + Math.random().toString(36).slice(-4).toUpperCase();
+      const ts = new Date().toLocaleTimeString();
+      state.log.unshift({ id, children: fam[level], equipment: 'stroller', dest: 'KL Sentral', ts });
+
+      updateDashboard(level);
+      updateBoard();
+    }
+
+    // ── BOARD ──────────────────────────────────────
+    function updateBoard() {
+      const m = MODES[state.mode];
+      document.getElementById('boardDemandNum').textContent = state.families;
+      document.getElementById('boardDemandNum').style.color = m.color;
+      document.getElementById('boardDemandLabel').textContent = `families on platform · ${state.demand}% demand`;
+
+      document.getElementById('boardMode').style.background =
+        state.mode === 'high' ? 'rgba(25,201,90,0.1)' :
+          state.mode === 'medium' ? 'rgba(240,165,0,0.1)' : 'rgba(56,182,255,0.07)';
+      document.getElementById('boardMode').style.border =
+        `1px solid ${state.mode === 'high' ? 'rgba(25,201,90,0.35)' : state.mode === 'medium' ? 'rgba(240,165,0,0.35)' : 'rgba(56,182,255,0.3)'}`;
+      document.getElementById('boardModeTitle').textContent = m.label + (m.label === 'STANDBY' ? '' : ' MODE');
+      document.getElementById('boardModeTitle').style.color = m.color;
+      document.getElementById('boardModeDesc').textContent = m.desc;
+
+      document.getElementById('boardDemandFill').style.width = state.demand + '%';
+
+      document.getElementById('boardInstruction').textContent = m.instruction;
+      document.getElementById('boardDoorHold').textContent = m.door > 0 ? '+' + m.door + 's' : '0s';
+      document.getElementById('boardDoorDesc').textContent =
+        m.door > 0 ? `Family boarding hold active. Doors stay open +${m.door} extra seconds.`
+          : 'No hold active. Standard door timing.';
+
+      // Coach
+      const cf = document.getElementById('boardCoachFill');
+      cf.style.width = m.coach + '%';
+      cf.textContent = m.coachText;
+      cf.style.background = state.mode === 'high' ? 'rgba(25,201,90,0.4)' :
+        state.mode === 'medium' ? 'rgba(240,165,0,0.4)' :
+          state.mode === 'low' ? 'rgba(56,182,255,0.4)' : 'transparent';
+      cf.style.color = m.color;
+      cf.style.borderRadius = m.coach === 100 ? '100px' : '100px 0 0 100px';
+      const totalPeople = state.log.reduce((sum, e) => sum + e.children, 0);
+      const countStroller = state.log.filter(e => e.equipment === 'stroller').length;
+      const countWagon = state.log.filter(e => e.equipment === 'wagon').length;
+      const countBoth = state.log.filter(e => e.equipment === 'both').length;
+      const countNone = state.log.filter(e => e.equipment === 'none').length;
+      const totalBays = countStroller + countWagon + (countBoth * 2);
+      const foldDeployed = totalBays > 0 ? totalBays + ' deployed' : 'folded in';
+
+      document.getElementById('boardCoachPct').textContent = m.coach + '% family zone';
+      document.getElementById('bdPrioritySeats').textContent = totalPeople > 0 ? totalPeople + ' reserved' : '0 reserved';
+      document.getElementById('bdStrollers').textContent = countStroller;
+      document.getElementById('bdWagons').textContent = countWagon;
+      document.getElementById('bdBoth').textContent = countBoth;
+      document.getElementById('bdFoldSeats').textContent = foldDeployed;
+
+      // Alert
+      const alertEl = document.getElementById('alertStrip');
+      if (m.alert) {
+        alertEl.classList.add('show');
+        document.getElementById('alertText').textContent = m.alert;
+      } else {
+        alertEl.classList.remove('show');
+      }
+
+      // Queue
+      const queue = document.getElementById('boardQueue');
+      if (state.log.length === 0) {
+        queue.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.25);font-size:0.80rem;">Queue empty</div>';
+      } else {
+        const eq = { stroller: '🛺', wagon: '🛒', both: '🛺🛒', none: '👤' };
+        queue.innerHTML = state.log.slice(0, 6).map(e => `
+      <div class="board-queue-row">
+        <span class="board-queue-id">${e.id}</span>
+        <span class="board-queue-type">${eq[e.equipment] || '👤'} ${e.children} ${e.children > 1 ? 'people' : 'person'} · ${e.dest}</span>
+        <span class="board-queue-time">${e.ts}</span>
+      </div>`).join('');
+      }
+    }
+
+    function dismissAlert() {
+      document.getElementById('alertStrip').classList.remove('show');
+    }
+
+    // ── CLOCK ──────────────────────────────────────
+    function updateClock() {
+      const now = new Date();
+      const t = now.toLocaleTimeString('en-MY', { hour12: false });
+      document.getElementById('boardClock').textContent = t;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+
+</html>
