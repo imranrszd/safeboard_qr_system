@@ -16,22 +16,23 @@
   <!-- NAV -->
   <nav class="nav">
     <div class="nav-logo">SafeBoard <span style="font-weight:500;font-size:0.7rem;opacity:0.55;">Operator</span></div>
-    <button class="tab active" data-view="dashboard" onclick="showView('dashboard')"><svg class="ico" viewBox="0 0 24 24">
+    <button class="tab active" data-view="dashboard" onclick="showView('dashboard')"><svg class="ico"
+        viewBox="0 0 24 24">
         <line x1="6" y1="20" x2="6" y2="14" />
         <line x1="12" y1="20" x2="12" y2="4" />
         <line x1="18" y1="20" x2="18" y2="10" />
       </svg> Operator Dashboard</button>
-    <button class="tab" data-view="flow" onclick="showView('flow')"><svg class="ico" viewBox="0 0 24 24">
-        <polyline points="23 4 23 10 17 10" />
-        <polyline points="1 20 1 14 7 14" />
-        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-      </svg> System Flow</button>
+    <button class="tab" data-view="board" onclick="showView('board')"><svg class="ico" viewBox="0 0 24 24">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <line x1="8" y1="21" x2="16" y2="21" />
+        <line x1="12" y1="17" x2="12" y2="21" />
+      </svg> Station Display</button>
     <div class="nav-right">
-      <button class="tab" data-view="board" onclick="showView('board')"><svg class="ico" viewBox="0 0 24 24">
-          <rect x="2" y="3" width="20" height="14" rx="2" />
-          <line x1="8" y1="21" x2="16" y2="21" />
-          <line x1="12" y1="17" x2="12" y2="21" />
-        </svg> Station Display</button>
+      <button class="tab" data-view="flow" onclick="showView('flow')"><svg class="ico" viewBox="0 0 24 24">
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg> System Flow</button>
     </div>
   </nav>
 
