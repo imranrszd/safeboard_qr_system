@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SafeBoard QR Check-In System v2</title>
+  <title>SafeBoard · Operator</title>
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet">
@@ -13,16 +13,10 @@
 
 <body>
 
-  <!-- ═══════ NAV ═══════ -->
+  <!-- NAV -->
   <nav class="nav">
-    <div class="nav-logo">
-      SafeBoard
-    </div>
-    <button class="tab active" data-view="scan" onclick="showView('scan')"><svg class="ico" viewBox="0 0 24 24">
-        <rect x="5" y="2" width="14" height="20" rx="2" />
-        <line x1="12" y1="18" x2="12.01" y2="18" />
-      </svg> Family Scan</button>
-    <button class="tab" data-view="dashboard" onclick="showView('dashboard')"><svg class="ico" viewBox="0 0 24 24">
+    <div class="nav-logo">SafeBoard <span style="font-weight:500;font-size:0.7rem;opacity:0.55;">Operator</span></div>
+    <button class="tab active" data-view="dashboard" onclick="showView('dashboard')"><svg class="ico" viewBox="0 0 24 24">
         <line x1="6" y1="20" x2="6" y2="14" />
         <line x1="12" y1="20" x2="12" y2="4" />
         <line x1="18" y1="20" x2="18" y2="10" />
@@ -41,175 +35,7 @@
     </div>
   </nav>
 
-  <!-- ═══════════════════════════════════════════════
-     VIEW 1: FAMILY SCAN PORTAL
-═══════════════════════════════════════════════ -->
-  <div class="view active" id="view-scan">
-    <div class="scan-portal">
-      <div class="scan-card">
-        <div class="scan-station-label">Sentral Station · Platform 4</div>
-        <h1 class="scan-title">Family <span>Priority</span> Check-In</h1>
-        <p class="scan-subtitle">Scan while waiting on the platform, and the system prepares your boarding spot before
-          the
-          train even arrives.</p>
-
-        <!-- QR visual -->
-        <div class="qr-container">
-          <div class="qr-frame" id="qrFrame" onclick="triggerScan()">
-            <div class="qr-corner-tr"></div>
-            <div class="qr-corner-bl"></div>
-            <div class="scan-line" id="scanLine"></div>
-            <div id="qrContent">
-              <!-- SVG QR pattern -->
-              <svg class="qr-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <rect x="10" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
-                <rect x="16" y="16" width="18" height="18" fill="#19c95a" rx="2" />
-                <rect x="60" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
-                <rect x="66" y="16" width="18" height="18" fill="#19c95a" rx="2" />
-                <rect x="10" y="60" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
-                <rect x="16" y="66" width="18" height="18" fill="#19c95a" rx="2" />
-                <rect x="46" y="10" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="46" y="22" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="10" y="46" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="22" y="46" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="46" y="46" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="58" y="46" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="70" y="46" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="82" y="46" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="46" y="58" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="58" y="58" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="70" y="58" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="46" y="70" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="70" y="70" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="58" y="82" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="82" y="82" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="82" y="58" width="8" height="8" fill="#19c95a" rx="1" />
-                <rect x="34" y="46" width="8" height="8" fill="#19c95a" rx="1" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- Form -->
-        <div class="scan-form" id="scanForm">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">People</label>
-              <select class="form-select" id="numPeople">
-                <option value="2">2 people</option>
-                <option value="3">3 people</option>
-                <option value="4">4 people</option>
-                <option value="5">5 people</option>
-                <option value="6">6+ people</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Equipment</label>
-              <select class="form-select" id="equipment">
-                <option value="stroller">Stroller</option>
-                <option value="wagon">Wagon</option>
-                <option value="both">Both</option>
-                <option value="none">None</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Destination</label>
-            <select class="form-select" id="destination">
-              <option>KL Sentral</option>
-              <option>Bandar Tasik Selatan</option>
-              <option>Salak Selatan</option>
-              <option>Seputeh</option>
-              <option>Kuala Lumpur</option>
-            </select>
-          </div>
-        </div>
-
-        <button class="scan-btn" id="scanBtn" onclick="doCheckIn()">
-          <svg class="ico" viewBox="0 0 24 24">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" stroke="none" />
-          </svg> Check In
-        </button>
-
-        <div class="status-msg" id="statusMsg"></div>
-
-        <div class="ticket-strip" id="ticketStrip">
-          <div class="ticket-row">
-            <span class="ticket-key">Check-In ID</span>
-            <span class="ticket-val green" id="ticketId">-</span>
-          </div>
-          <hr class="ticket-divider">
-          <div class="ticket-row">
-            <span class="ticket-key">Mode Activated</span>
-            <span class="ticket-val amber" id="ticketMode">-</span>
-          </div>
-          <div class="ticket-row">
-            <span class="ticket-key">Coach Section</span>
-            <span class="ticket-val" id="ticketSection">-</span>
-          </div>
-          <div class="ticket-row">
-            <span class="ticket-key">Door Hold (Capped)</span>
-            <span class="ticket-val green" id="ticketDoor">-</span>
-          </div>
-          <div class="ticket-row">
-            <span class="ticket-key">Board at Car</span>
-            <span class="ticket-val" id="ticketCar">-</span>
-          </div>
-          <hr class="ticket-divider">
-          <div class="ticket-row">
-            <span class="ticket-key">Status</span>
-            <span class="ticket-val green">✓ READY TO BOARD</span>
-          </div>
-        </div>
-
-        <!-- PRE-POSITIONING TIMELINE (v2 addition) -->
-        <!-- <div class="prepos-panel" id="preposPanel">
-          <div class="prepos-header">
-            <span class="prepos-badge">Pre-Positioning</span>
-            <span class="prepos-title">Preparing before your train arrives</span>
-          </div>
-          <div class="prepos-timeline" id="preposTimeline">
-            <div class="prepos-step" data-step="0">
-              <span class="prepos-step-dot"></span>
-              <span class="prepos-step-time">Now</span>
-              <span>Check-in received, system begins preparing your boarding spot</span>
-            </div>
-            <div class="prepos-step" data-step="1">
-              <span class="prepos-step-dot"></span>
-              <span class="prepos-step-time">+15s</span>
-              <span>Staff notified and walking to your assigned door</span>
-            </div>
-            <div class="prepos-step" data-step="2">
-              <span class="prepos-step-dot"></span>
-              <span class="prepos-step-time">+35s</span>
-              <span>Foldable seats begin folding, stroller bay clearing</span>
-            </div>
-            <div class="prepos-step" data-step="3">
-              <span class="prepos-step-dot"></span>
-              <span class="prepos-step-time">Arrival</span>
-              <span>Train arrives, door hold is short because everything is already ready</span>
-            </div>
-          </div>
-        </div> -->
-
-        <!-- Recent check-ins feed (mirrors the dashboard log, same state.log) -->
-        <!-- <div class="scan-recent">
-          <div class="scan-recent-head">
-            <span class="scan-recent-title">Recent check-ins</span>
-            <span class="scan-recent-count" id="scanRecentCount">0</span>
-          </div>
-          <div class="scan-recent-list" id="scanLog">
-            <div class="scan-recent-empty">No check-ins yet — scan a QR to begin.</div>
-          </div>
-        </div> -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════
-     VIEW 2: OPERATOR DASHBOARD
-═══════════════════════════════════════════════ -->
-  <div class="view" id="view-dashboard">
+  <div class="view active" id="view-dashboard">
     <div class="dashboard">
       <div class="dash-header">
         <div>
@@ -501,9 +327,6 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-     VIEW 3: STATION DISPLAY BOARD
-═══════════════════════════════════════════════ -->
   <div class="view" id="view-board">
     <div class="display-board">
       <div class="board-header">
@@ -615,9 +438,6 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-     VIEW 4: SYSTEM FLOW
-═══════════════════════════════════════════════ -->
   <div class="view" id="view-flow">
     <div class="flow-view">
       <div class="flow-header">
@@ -789,85 +609,11 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════════
-     VIEW 5: WHAT CHANGED (v1 vs v2 COMPARISON)
-═══════════════════════════════════════════════ -->
-  <div class="view" id="view-compare">
-    <div class="compare-view">
-      <div class="compare-header">
-        <h2>What <span>Changed</span> in v2</h2>
-        <p>After our presentation, our lecturer raised a real operational concern about schedule impact. Here's how we
-          fixed it.</p>
-      </div>
+  <!-- Firebase (compat build) -> firebase-config.js -> app.js -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
 
-      <div class="lecturer-quote">
-        <div class="lecturer-quote-label"><svg class="ico" viewBox="0 0 24 24">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg> Lecturer Feedback</div>
-        <div class="lecturer-quote-text">
-          "A flat +20–30 second door-hold at every station will compound across an LRT line. With only about 7 minutes
-          between trains, this could create severe cumulative delay and disrupt arrival timing system-wide."
-        </div>
-      </div>
-
-      <div class="compare-grid">
-        <div class="compare-col v1">
-          <span class="compare-col-tag">Version 1: Original</span>
-          <div class="compare-col-title">Flat Door-Hold</div>
-          <div class="compare-row"><span class="compare-row-label">Low demand hold</span><span
-              class="compare-row-val">+15s</span></div>
-          <div class="compare-row"><span class="compare-row-label">Medium demand hold</span><span
-              class="compare-row-val">+22s</span></div>
-          <div class="compare-row"><span class="compare-row-label">High demand hold</span><span
-              class="compare-row-val">+29s</span></div>
-          <div class="compare-row"><span class="compare-row-label">Trigger condition</span><span
-              class="compare-row-val">Detection only</span></div>
-          <div class="compare-row"><span class="compare-row-label">Recovery mechanism</span><span
-              class="compare-row-val">None</span></div>
-          <div class="compare-row"><span class="compare-row-label">6 stations × demand (18-line)</span><span
-              class="compare-row-val">+2.5 min net</span></div>
-        </div>
-        <div class="compare-col v2">
-          <span class="compare-col-tag">Version 2: Revised</span>
-          <div class="compare-col-title">Tiered + Pre-Positioned</div>
-          <div class="compare-row"><span class="compare-row-label">Low demand hold</span><span
-              class="compare-row-val">+0s</span></div>
-          <div class="compare-row"><span class="compare-row-label">Medium demand hold</span><span
-              class="compare-row-val">+8s</span></div>
-          <div class="compare-row"><span class="compare-row-label">High demand hold (capped)</span><span
-              class="compare-row-val">+15s</span></div>
-          <div class="compare-row"><span class="compare-row-label">Trigger condition</span><span
-              class="compare-row-val">AI + QR confirmed</span></div>
-          <div class="compare-row"><span class="compare-row-label">Recovery mechanism</span><span
-              class="compare-row-val">Next 1–2 stations</span></div>
-          <div class="compare-row"><span class="compare-row-label">6 stations × demand (18-line)</span><span
-              class="compare-row-val">≈ 0–15s net</span></div>
-        </div>
-      </div>
-
-      <div class="layer-cards">
-        <div class="layer-card">
-          <div class="layer-num">1</div>
-          <div class="layer-title">Tiered, Capped Hold</div>
-          <div class="layer-desc">Door-hold scales with real, confirmed demand instead of being flat: +0s at low
-            demand, +8s at medium, capped at +15s maximum even at peak. This is on top of the standard 45s default door
-            time.</div>
-        </div>
-        <div class="layer-card">
-          <div class="layer-num">2</div>
-          <div class="layer-title">QR Pre-Positioning</div>
-          <div class="layer-desc">Families check in while still waiting on the platform, before the train arrives. That
-            lead time lets staff and seats get ready in advance, so the hold itself can be much shorter.</div>
-        </div>
-        <div class="layer-card">
-          <div class="layer-num">3</div>
-          <div class="layer-title">Dynamic Recovery</div>
-          <div class="layer-desc">Any time used at one station is clawed back at the next quiet station, instead of
-            permanently padding the whole schedule.</div>
-        </div>
-      </div>
-
-      <div class="impact-summary">
-        <div class="impact-summary-num">≈ 0 sec</div
+</html>

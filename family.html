@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeBoard · Family Check-In</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-logo">SafeBoard <span style="font-weight:500;font-size:0.7rem;opacity:0.55;">Family Check-In</span></div>
+  </nav>
+
+  <div class="view active" id="view-scan">
+    <div class="scan-portal">
+      <div class="scan-card">
+        <div class="scan-station-label">Sentral Station · Platform 4</div>
+        <h1 class="scan-title">Family <span>Priority</span> Check-In</h1>
+        <p class="scan-subtitle">Scan while waiting on the platform, and the system prepares your boarding spot before
+          the
+          train even arrives.</p>
+
+        <!-- QR visual -->
+        <div class="qr-container">
+          <div class="qr-frame" id="qrFrame" onclick="triggerScan()">
+            <div class="qr-corner-tr"></div>
+            <div class="qr-corner-bl"></div>
+            <div class="scan-line" id="scanLine"></div>
+            <div id="qrContent">
+              <!-- SVG QR pattern -->
+              <svg class="qr-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
+                <rect x="16" y="16" width="18" height="18" fill="#19c95a" rx="2" />
+                <rect x="60" y="10" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
+                <rect x="66" y="16" width="18" height="18" fill="#19c95a" rx="2" />
+                <rect x="10" y="60" width="30" height="30" fill="none" stroke="#19c95a" stroke-width="3" rx="3" />
+                <rect x="16" y="66" width="18" height="18" fill="#19c95a" rx="2" />
+                <rect x="46" y="10" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="22" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="10" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="22" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="58" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="70" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="82" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="58" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="70" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="46" y="70" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="70" y="70" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="58" y="82" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="82" y="82" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="82" y="58" width="8" height="8" fill="#19c95a" rx="1" />
+                <rect x="34" y="46" width="8" height="8" fill="#19c95a" rx="1" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div class="scan-form" id="scanForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">People</label>
+              <select class="form-select" id="numPeople">
+                <option value="2">2 people</option>
+                <option value="3">3 people</option>
+                <option value="4">4 people</option>
+                <option value="5">5 people</option>
+                <option value="6">6+ people</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Equipment</label>
+              <select class="form-select" id="equipment">
+                <option value="stroller">Stroller</option>
+                <option value="wagon">Wagon</option>
+                <option value="both">Both</option>
+                <option value="none">None</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Destination</label>
+            <select class="form-select" id="destination">
+              <option>KL Sentral</option>
+              <option>Bandar Tasik Selatan</option>
+              <option>Salak Selatan</option>
+              <option>Seputeh</option>
+              <option>Kuala Lumpur</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="scan-btn" id="scanBtn" onclick="doCheckIn()">
+          <svg class="ico" viewBox="0 0 24 24">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" stroke="none" />
+          </svg> Check In
+        </button>
+
+        <div class="status-msg" id="statusMsg"></div>
+
+        <div class="ticket-strip" id="ticketStrip">
+          <div class="ticket-row">
+            <span class="ticket-key">Check-In ID</span>
+            <span class="ticket-val green" id="ticketId">-</span>
+          </div>
+          <hr class="ticket-divider">
+          <div class="ticket-row">
+            <span class="ticket-key">Mode Activated</span>
+            <span class="ticket-val amber" id="ticketMode">-</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-key">Coach Section</span>
+            <span class="ticket-val" id="ticketSection">-</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-key">Door Hold (Capped)</span>
+            <span class="ticket-val green" id="ticketDoor">-</span>
+          </div>
+          <div class="ticket-row">
+            <span class="ticket-key">Board at Car</span>
+            <span class="ticket-val" id="ticketCar">-</span>
+          </div>
+          <hr class="ticket-divider">
+          <div class="ticket-row">
+            <span class="ticket-key">Status</span>
+            <span class="ticket-val green">✓ READY TO BOARD</span>
+          </div>
+        </div>
+
+        <!-- PRE-POSITIONING TIMELINE (v2 addition) -->
+        <!-- <div class="prepos-panel" id="preposPanel">
+          <div class="prepos-header">
+            <span class="prepos-badge">Pre-Positioning</span>
+            <span class="prepos-title">Preparing before your train arrives</span>
+          </div>
+          <div class="prepos-timeline" id="preposTimeline">
+            <div class="prepos-step" data-step="0">
+              <span class="prepos-step-dot"></span>
+              <span class="prepos-step-time">Now</span>
+              <span>Check-in received, system begins preparing your boarding spot</span>
+            </div>
+            <div class="prepos-step" data-step="1">
+              <span class="prepos-step-dot"></span>
+              <span class="prepos-step-time">+15s</span>
+              <span>Staff notified and walking to your assigned door</span>
+            </div>
+            <div class="prepos-step" data-step="2">
+              <span class="prepos-step-dot"></span>
+              <span class="prepos-step-time">+35s</span>
+              <span>Foldable seats begin folding, stroller bay clearing</span>
+            </div>
+            <div class="prepos-step" data-step="3">
+              <span class="prepos-step-dot"></span>
+              <span class="prepos-step-time">Arrival</span>
+              <span>Train arrives, door hold is short because everything is already ready</span>
+            </div>
+          </div>
+        </div> -->
+
+        <!-- Recent check-ins feed (mirrors the dashboard log, same state.log) -->
+        <!-- <div class="scan-recent">
+          <div class="scan-recent-head">
+            <span class="scan-recent-title">Recent check-ins</span>
+            <span class="scan-recent-count" id="scanRecentCount">0</span>
+          </div>
+          <div class="scan-recent-list" id="scanLog">
+            <div class="scan-recent-empty">No check-ins yet — scan a QR to begin.</div>
+          </div>
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase (compat build) -> firebase-config.js -> app.js -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
